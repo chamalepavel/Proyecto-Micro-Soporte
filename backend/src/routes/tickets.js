@@ -5,44 +5,32 @@ const { verificarToken, requerirRol } = require('../middleware/auth');
 
 const router = express.Router();
 
-// GET /api/tickets — obtener todos los tickets
-// Los clientes solo ven sus propios tickets; admin y support ven todos
 router.get('/', verificarToken, async (req, res) => {
   try {
     let tickets;
-
     if (req.usuario.role === 'client') {
       tickets = await Ticket.getByUser(req.usuario.user_id);
     } else {
       tickets = await Ticket.getAll();
     }
-
     res.json(tickets);
   } catch (error) {
-    console.error('Error al obtener tickets:', error);
     res.status(500).json({ error: 'Error al obtener tickets' });
   }
 });
 
-// GET /api/tickets/:id — obtener un ticket con sus comentarios
 router.get('/:id', verificarToken, async (req, res) => {
   try {
     const ticket = await Ticket.findById(req.params.id);
-
-    if (!ticket) {
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
+    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     const comentarios = await Comment.getByTicket(req.params.id);
-
     res.json({ ticket, comentarios });
   } catch (error) {
-    console.error('Error al obtener ticket:', error);
     res.status(500).json({ error: 'Error al obtener ticket' });
   }
 });
 
-// POST /api/tickets — crear un nuevo ticket
 router.post('/', verificarToken, async (req, res) => {
   try {
     const { subject, description, type, impact, product_id } = req.body;
@@ -62,13 +50,10 @@ router.post('/', verificarToken, async (req, res) => {
 
     res.status(201).json({ mensaje: 'Ticket creado exitosamente', ticket: nuevoTicket });
   } catch (error) {
-    console.error('Error al crear ticket:', error);
     res.status(500).json({ error: 'Error al crear ticket' });
   }
 });
 
-// PUT /api/tickets/:id — actualizar estado, asignado y nivel
-// Solo admin y support pueden actualizar tickets
 router.put('/:id', verificarToken, requerirRol(['admin', 'support']), async (req, res) => {
   try {
     const { status, assigned_to, level } = req.body;
@@ -79,34 +64,25 @@ router.put('/:id', verificarToken, requerirRol(['admin', 'support']), async (req
       level:       level       || 1
     });
 
-    if (!ticketActualizado) {
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
+    if (!ticketActualizado) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     res.json({ mensaje: 'Ticket actualizado exitosamente', ticket: ticketActualizado });
   } catch (error) {
-    console.error('Error al actualizar ticket:', error);
     res.status(500).json({ error: 'Error al actualizar ticket' });
   }
 });
 
-// DELETE /api/tickets/:id — eliminar un ticket
 router.delete('/:id', verificarToken, requerirRol(['admin']), async (req, res) => {
   try {
     const ticket = await Ticket.delete(req.params.id);
-
-    if (!ticket) {
-      return res.status(404).json({ error: 'Ticket no encontrado' });
-    }
+    if (!ticket) return res.status(404).json({ error: 'Ticket no encontrado' });
 
     res.json({ mensaje: 'Ticket eliminado exitosamente' });
   } catch (error) {
-    console.error('Error al eliminar ticket:', error);
     res.status(500).json({ error: 'Error al eliminar ticket' });
   }
 });
 
-// POST /api/tickets/:id/comentarios — agregar comentario a un ticket
 router.post('/:id/comentarios', verificarToken, async (req, res) => {
   try {
     const { content } = req.body;
@@ -123,7 +99,6 @@ router.post('/:id/comentarios', verificarToken, async (req, res) => {
 
     res.status(201).json({ mensaje: 'Comentario agregado', comentario });
   } catch (error) {
-    console.error('Error al agregar comentario:', error);
     res.status(500).json({ error: 'Error al agregar comentario' });
   }
 });
