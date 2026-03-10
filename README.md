@@ -1,119 +1,83 @@
-# SISTEMA DE MICRO-SOPORTE L1/L2
+# Proyecto Micro-Soporte
 
-## Descripción
-Sistema de gestión de tickets de soporte técnico para empresas. Permite a las empresas registrar sus productos, crear tickets de soporte, gestionar usuarios y generar reportes en PDF.
+Sistema de Help Desk básico para gestión de tickets de soporte técnico.
 
-## Estructura del Proyecto
+---
+
+## Tecnologías
+
+- **Backend**: Node.js + Express
+- **Frontend**: React + Bootstrap
+- **Base de datos**: PostgreSQL
+- **Autenticación**: JWT
+- **Contenedor BD**: Docker
+
+---
+
+## Estructura del proyecto
 
 ```
 soporte-micro/
-├── backend/           # Servidor Node.js/Express
-├── frontend/          # Aplicación React
-├── database/          # Scripts SQL
-├── docs/             # Documentación
-├── package.json      # Dependencias raíz
-└── README.md         # Este archivo
+├── backend/
+│   └── src/
+│       ├── models/        # Consultas a la base de datos
+│       ├── routes/        # Endpoints de la API
+│       ├── middleware/    # Verificación de token JWT
+│       ├── db.js          # Conexión a PostgreSQL
+│       └── app.js         # Servidor Express
+├── frontend/
+│   └── src/
+│       ├── pages/         # Vistas de la aplicación
+│       ├── components/    # Navbar
+│       ├── services/      # Llamadas a la API
+│       ├── utils/         # Funciones de autenticación
+│       └── App.js         # Rutas del frontend
+├── database/
+│   └── schema.sql         # Esquema y datos de prueba
+└── docs/                  # Documentación del proyecto
 ```
 
-## Tecnologías Utilizadas
+---
 
-- **Backend**: Node.js + Express + PostgreSQL
-- **Frontend**: React + Bootstrap + Axios
-- **Base de Datos**: PostgreSQL
-- **Autenticación**: JWT
-- **PDF**: HTML + jsPDF
+## Uso del sistema
 
-## Instalación y Configuración
+### Requisitos previos
 
-### 1. Clonar el Proyecto
+- Node.js instalado
+- Docker instalado (para la base de datos)
+
+### 1. Iniciar la base de datos
+
 ```bash
-git clone <repositorio>
-cd soporte-micro
+docker run --name soporte-micro-db -e POSTGRES_PASSWORD=postgres -p 5432:5432 -d postgres
+docker exec -i soporte-micro-db psql -U postgres -c "CREATE DATABASE soporte_micro;"
+docker exec -i soporte-micro-db psql -U postgres -d soporte_micro < database/schema.sql
 ```
 
-### 2. Instalar Dependencias
+### 2. Iniciar el backend
+
 ```bash
-npm run install:all
+cd backend
+npm install
+npm start
 ```
 
-### 3. Configurar Base de Datos
-1. Instalar PostgreSQL
-2. Crear base de datos: `CREATE DATABASE soporte_micro;`
-3. Ejecutar schema.sql: `\i database/schema.sql`
+### 3. Iniciar el frontend
 
-### 4. Variables de Entorno
-Crear archivo `.env` en las carpetas `backend/` y `frontend/` con las variables necesarias.
-
-## Scripts Disponibles
-
-### Desde la raíz
 ```bash
-npm run dev          # Inicia backend y frontend simultáneamente
-npm run install:all  # Instala dependencias en todos los proyectos
-npm run build        # Compila la aplicación React
-npm run start        # Inicia solo el backend
+cd frontend
+npm install
+npm run dev
 ```
 
-### Backend
-```bash
-npm run dev          # Inicia servidor con nodemon
-npm run start        # Inicia servidor en producción
-```
+### 4. Acceder al sistema
 
-### Frontend
-```bash
-npm run dev          # Inicia servidor de desarrollo
-npm run build        # Compila para producción
-npm run preview      # Previsualiza la compilación
-```
+Abrir el navegador en: `http://localhost:3000`
 
-## Documentación
+### Cuentas de prueba
 
-- [Bitácora del Proyecto](docs/bitacora.md)
-- [Explicación del Código](docs/explicacion-codigo.md)
-- [Flujo del Sistema](docs/flujo-sistema.md)
-
-## Uso del Sistema
-
-1. **Iniciar el Servidor**: `npm run dev`
-2. **Acceder a la Aplicación**: http://localhost:3000
-3. **Credenciales de Prueba**:
-   - Admin: admin@microsoporte.com / admin123
-   - Soporte: soporte@microsoporte.com / soporte123
-   - Cliente: cliente@microsoporte.com / cliente123
-
-## Contribución
-
-1. Fork del proyecto
-2. Crear feature branch
-3. Commit de cambios
-4. Push a la branch
-5. Pull Request
-
-## Licencia
-
-MIT License - ver archivo LICENSE para detalles.
-
-## Contacto
-
-Equipo de Desarrollo
-```
-
-<task_progress>
-- [x] Analyze project requirements
-- [x] Create simplified plan
-- [x] Get user approval
-- [x] Create project structure
-- [x] Create configuration files
-- [x] Create database schema
-- [x] Create documentation
-- [x] Install dependencies
-- [ ] Implement database
-- [ ] Implement backend
-- [ ] Implement frontend
-- [ ] Implement authentication
-- [ ] Implement business logic
-- [ ] Implement PDF generation
-- [ ] Test and verify
-</task_progress>
-</write_to_file>
+| Email | Contraseña | Rol |
+|---|---|---|
+| admin@microsoporte.com | admin123 | Administrador |
+| soporte@microsoporte.com | admin123 | Soporte |
+| cliente@microsoporte.com | admin123 | Cliente |
