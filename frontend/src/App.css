@@ -1,0 +1,42 @@
+.App {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.navbar-brand {
+  font-weight: bold;
+  color: #fff !important;
+}
+
+.sidebar {
+  min-height: 100vh;
+  background-color: #343a40;
+}
+
+.sidebar .nav-link {
+  color: #fff;
+  padding: 12px 20px;
+}
+
+.sidebar .nav-link:hover {
+  background-color: #495057;
+}
+
+.sidebar .nav-link.active {
+  background-color: #007bff;
+}
+
+.main-content {
+  margin-left: 250px;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    margin-left: -250px;
+  }
+
+  .main-content {
+    margin-left: 0;
+  }
+}

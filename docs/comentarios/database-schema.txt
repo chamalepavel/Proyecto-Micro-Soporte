@@ -1,0 +1,117 @@
+ARCHIVO: database/schema.sql
+DESCRIPCION: Esquema de la base de datos PostgreSQL del sistema de micro-soporte.
+
+============================================================
+EXTENSION uuid-ossp
+============================================================
+Se activa para poder usar la función uuid_generate_v4() que genera IDs únicos 
+automáticamente. Un UUID es una cadena como "550e8400-e29b-41d4-a716-446655440000".
+Debe declararse ANTES de crear las tablas que lo usan.
+
+============================================================
+TABLA: customers (Empresas cliente)
+============================================================
+Columnas:
+  - nit           : Clave primaria. Número de identificación tributaria de la empresa.
+                    Es un VARCHAR porque puede tener letras o guiones.
+  - company_name  : Nombre de la empresa. Obligatorio (NOT NULL).
+  - contact_email : Email de contacto de la empresa. Opcional.
+  - created_at    : Fecha/hora de creación del registro. Se llena automáticamente.
+  - updated_at    : Fecha/hora de la última modificación.
+  - deleted_at    : Si tiene valor, el registro está "borrado" (soft delete).
+                    En vez de borrar físicamente, guardamos la fecha de "borrado".
+
+============================================================
+TABLA: products (Productos)
+============================================================
+Columnas:
+  - product_id   : UUID generado automáticamente. Clave primaria.
+  - nit_customer : Referencia al NIT de la empresa dueña del producto (llave foránea).
+                   ON DELETE CASCADE = si se elimina la empresa, sus productos también.
+  - product_name : Nombre del producto. Obligatorio.
+  - description  : Descripción del producto. Opcional (TEXT = sin límite de caracteres).
+  - created_at, updated_at, deleted_at: igual que en customers.
+
+============================================================
+TABLA: users (Usuarios del sistema)
+============================================================
+Columnas:
+  - user_id       : UUID generado automáticamente. Clave primaria.
+  - full_name     : Nombre completo del usuario. Obligatorio.
+  - email         : Email único de acceso. UNIQUE = no se repite en dos usuarios.
+  - password_hash : Contraseña encriptada con bcrypt. NUNCA se guarda en texto plano.
+  - role          : Rol del usuario. Solo puede ser: 'admin', 'support' o 'client'.
+                    CHECK garantiza que no se guarden otros valores.
+  - created_at, updated_at, deleted_at: igual que en otras tablas.
+
+Roles y sus permisos:
+  - admin   : Acceso total al sistema.
+  - support : Puede crear/actualizar tickets y comentarios, ver clientes y productos.
+  - client  : Solo puede crear y ver sus propios tickets.
+
+============================================================
+TABLA: tickets (Tickets de soporte)
+============================================================
+Es la tabla central del sistema. Registra cada solicitud de soporte.
+
+Columnas:
+  - ticket_id        : UUID generado automáticamente. Clave primaria.
+  - product_id       : Referencia al producto afectado. Opcional (puede ser NULL).
+  - created_by_user  : Quién creó el ticket. ON DELETE SET NULL = si se borra el usuario,
+                       el campo queda en NULL pero el ticket sigue existiendo.
+  - assigned_user_id : Agente de soporte asignado. También puede ser NULL.
+  - subject          : Título del ticket. Obligatorio. Máximo 300 caracteres.
+  - description      : Descripción del problema. Opcional (TEXT).
+  - type             : Tipo de ticket: 'incident', 'request' o 'question'.
+  - impact           : Severidad: 'low', 'medium', 'high', 'critical'.
+  - status           : Estado: 'open', 'in_progress', 'closed'.
+  - current_level    : Nivel de escalamiento: 1 (L1 básico) o 2 (L2 especializado).
+  - created_at, updated_at, deleted_at: igual que en otras tablas.
+
+============================================================
+TABLA: comments (Comentarios en tickets)
+============================================================
+Permite el seguimiento de un ticket mediante conversación.
+
+Columnas:
+  - comment_id : UUID generado automáticamente. Clave primaria.
+  - ticket_id  : Referencia al ticket. ON DELETE CASCADE = si se borra el ticket,
+                 sus comentarios también se borran.
+  - user_id    : Quién escribió el comentario. ON DELETE SET NULL.
+  - content    : Texto del comentario. Obligatorio (TEXT).
+  - created_at, updated_at, deleted_at: igual que en otras tablas.
+
+============================================================
+INDICES
+============================================================
+Los índices son estructuras que aceleran las búsquedas. Son como el índice de un libro.
+Sin índices, PostgreSQL tendría que leer TODA la tabla para encontrar un registro.
+Con índices, va directamente al registro.
+
+Índices creados:
+  - idx_products_nit_customer    : Para buscar productos por empresa.
+  - idx_tickets_product_id       : Para buscar tickets por producto.
+  - idx_tickets_assigned_user_id : Para buscar tickets asignados a un agente.
+  - idx_tickets_created_by_user  : Para buscar tickets creados por un usuario.
+  - idx_comments_ticket_id       : Para buscar comentarios de un ticket.
+  - idx_comments_user_id         : Para buscar comentarios de un usuario.
+
+============================================================
+DATOS INICIALES (SEEDS)
+============================================================
+ON CONFLICT (...) DO NOTHING = si el registro ya existe, no falla, simplemente omite.
+
+Empresas de prueba:
+  - NIT 12345678 : Empresa Demo S.A.
+  - NIT 87654321 : Tecnología XYZ
+
+Usuarios de prueba (todos usan la misma contraseña de ejemplo):
+  - admin@microsoporte.com   (rol: admin)
+  - soporte@microsoporte.com (rol: support)
+  - cliente@microsoporte.com (rol: client)
+  Contraseña para todos: admin123
+
+Productos de prueba:
+  - Sistema de Facturación (de Empresa Demo)
+  - CRM Online             (de Empresa Demo)
+  - Plataforma E-commerce  (de Tecnología XYZ)

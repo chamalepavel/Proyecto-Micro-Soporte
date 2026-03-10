@@ -1,0 +1,82 @@
+ARCHIVO: backend/src/middleware/auth.js
+DESCRIPCION: Middleware de autenticación y autorización del backend.
+
+============================================================
+CONCEPTO: ¿Qué es un Middleware?
+============================================================
+Un middleware es una función que se ejecuta ENTRE que llega la petición HTTP
+y que el servidor la procesa. Se usan como "capas" o "filtros".
+
+Flujo sin middleware:
+  Petición → Ruta → Respuesta
+
+Flujo con middleware:
+  Petición → Middleware1 → Middleware2 → Ruta → Respuesta
+
+Si el middleware llama a next(), pasa al siguiente.
+Si el middleware envía una respuesta (res.json), detiene el flujo.
+
+============================================================
+CONCEPTO: JWT (JSON Web Token)
+============================================================
+Un JWT es un token de sesión compacto y auto-contenido.
+Tiene 3 partes separadas por puntos: HEADER.PAYLOAD.SIGNATURE
+
+Ejemplo: eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoiMTIzIn0.abc123
+
+  - HEADER   : Algoritmo de firma (HS256)
+  - PAYLOAD  : Datos que guardamos (user_id, email, role) — NO poner contraseñas
+  - SIGNATURE: Firma digital que garantiza que nadie modificó el token
+
+jwt.sign(datos, secreto, opciones)   → crea el token
+jwt.verify(token, secreto)           → verifica y decodifica el token
+Si el token fue modificado, jwt.verify lanza un error.
+
+============================================================
+FUNCION: verificarToken
+============================================================
+Parámetros: req (petición), res (respuesta), next (siguiente función)
+
+Flujo:
+  1. Lee el header "Authorization" de la petición HTTP.
+     Formato esperado: "Bearer eyJhbGciOiJIUzI1NiJ9..."
+  
+  2. Si no hay header → responde 401 (No autorizado).
+  
+  3. Separa "Bearer" del token real con split(' ')[1].
+     "Bearer TOKEN".split(' ') = ["Bearer", "TOKEN"]
+     [1] = "TOKEN"
+  
+  4. Verifica el token con jwt.verify() usando JWT_SECRET del .env.
+     Si el token es válido, devuelve los datos que guardamos al crear el token.
+  
+  5. Busca el usuario en la BD con User.findById() para confirmar que existe.
+  
+  6. Guarda el usuario en req.usuario para que las rutas lo puedan usar.
+  
+  7. Llama a next() para continuar con la ruta.
+
+Errores:
+  - Sin header Authorization → 401
+  - Sin token después de "Bearer" → 401
+  - Token inválido o expirado → 403
+  - Usuario no encontrado en BD → 401
+
+============================================================
+FUNCION: requerirRol
+============================================================
+Es una "función que retorna una función" (closure/higher-order function).
+Se llama con un array de roles permitidos y devuelve el middleware real.
+
+Uso en rutas:
+  router.post('/', verificarToken, requerirRol(['admin', 'support']), handler)
+
+Flujo:
+  1. Verifica que req.usuario exista (requiere que verificarToken haya corrido antes).
+  2. Verifica que req.usuario.role esté en el array rolesPermitidos.
+  3. Si no tiene el rol → responde 403 (Prohibido).
+  4. Si tiene el rol → llama a next() para continuar.
+
+Nota: 403 (Forbidden) es diferente a 401 (Unauthorized).
+  - 401: No sé quién eres (no autenticado)
+  - 403: Sé quién eres, pero no tienes permiso (no autorizado)

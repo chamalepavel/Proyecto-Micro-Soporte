@@ -1,0 +1,24 @@
+# Dependencias de Node.js
+node_modules/
+
+# Variables de entorno (contienen contraseñas)
+.env
+backend/.env
+frontend/.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build del frontend
+dist/
+build/
+
+# Editor
+.vscode/
+*.swp
+*.swo
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

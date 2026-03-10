@@ -1,0 +1,199 @@
+ARCHIVO: backend/src/routes/auth.js
+ARCHIVO: backend/src/routes/tickets.js
+ARCHIVO: backend/src/routes/products.js
+ARCHIVO: backend/src/routes/customers.js
+ARCHIVO: backend/src/routes/users.js
+ARCHIVO: backend/src/routes/comments.js
+ARCHIVO: backend/src/routes/index.js
+DESCRIPCION: Rutas (endpoints) del API REST del backend.
+
+============================================================
+CONCEPTO: ¿Qué es un Router de Express?
+============================================================
+express.Router() crea un "mini-servidor de rutas" que agrupa endpoints relacionados.
+Cada router se monta en app.js con un prefijo:
+  app.use('/api', routes)  ← el routes/index.js que agrupa todos los routers
+
+Entonces:
+  routes/index.js  monta  /auth      → routes/auth.js
+  routes/index.js  monta  /tickets   → routes/tickets.js
+  etc.
+
+Resultado: la ruta completa es /api/auth/login, /api/tickets, etc.
+
+============================================================
+CONCEPTO: Verbos HTTP
+============================================================
+  GET    → Leer datos (no modifica nada)
+  POST   → Crear un recurso nuevo
+  PUT    → Reemplazar un recurso completo
+  PATCH  → Actualizar parcialmente un recurso
+  DELETE → Eliminar un recurso
+
+============================================================
+CONCEPTO: req y res
+============================================================
+  req (request)  = la petición que llega del cliente (frontend)
+  res (response) = la respuesta que enviamos de vuelta
+
+  req.body       = datos enviados en el cuerpo (JSON)
+  req.params     = parámetros de la URL (:id, :nit)
+  req.query      = parámetros de búsqueda (?page=1&limit=10)
+  req.usuario    = usuario autenticado (puesto por el middleware verificarToken)
+  
+  res.json(datos)        = envía respuesta JSON con status 200
+  res.status(201).json() = envía respuesta JSON con status 201
+  return res.status(400).json({ error: '...' })  = envía error y corta la ejecución
+
+============================================================
+CONCEPTO: Códigos de estado HTTP
+============================================================
+  200 OK          → Todo bien, petición exitosa
+  201 Created     → Recurso creado exitosamente
+  400 Bad Request → El cliente envió datos incorrectos o incompletos
+  401 Unauthorized→ No autenticado (sin token o token inválido)
+  403 Forbidden   → Autenticado pero sin permiso para este recurso
+  404 Not Found   → El recurso solicitado no existe
+  500 Server Error→ Error interno del servidor
+
+============================================================
+RUTA: routes/auth.js (/api/auth)
+============================================================
+
+POST /api/auth/register
+  Propósito: Registrar un nuevo usuario
+  Body esperado: { full_name, email, password, role }
+  Flujo:
+    1. Valida que full_name, email y password estén presentes.
+    2. Busca si ya existe un usuario con ese email.
+    3. Si existe → error 400.
+    4. Encripta la contraseña con bcrypt.hash(password, 10).
+       "10" = salt rounds (cuántas veces se aplica el algoritmo de hash).
+    5. Crea el usuario en la BD.
+    6. Responde con los datos del usuario (SIN la contraseña).
+
+POST /api/auth/login
+  Propósito: Iniciar sesión
+  Body esperado: { email, password }
+  Flujo:
+    1. Valida que email y password estén presentes.
+    2. Busca el usuario por email (incluye password_hash).
+    3. Si no existe → error 401 genérico (no decimos si no existe el email).
+    4. Compara la contraseña con bcrypt.compare(password, password_hash).
+       bcrypt.compare retorna true si coinciden, false si no.
+    5. Si no coincide → error 401.
+    6. Crea el JWT con jwt.sign({ user_id, email, role }, secret, { expiresIn: '24h' }).
+    7. Responde con el token y datos del usuario.
+
+GET /api/auth/perfil (requiere verificarToken)
+  Propósito: Obtener los datos del usuario actual
+  Responde con los datos de req.usuario (sin contraseña).
+
+============================================================
+RUTA: routes/tickets.js (/api/tickets)
+============================================================
+
+IMPORTANTE: Las rutas con nombres fijos (como /stats y /recientes) DEBEN declararse
+ANTES de la ruta /:id, porque Express las procesa en orden. Si /:id va primero,
+Express pensaría que "stats" es un ID.
+
+GET /api/tickets/stats
+  Propósito: Estadísticas para el Dashboard
+  Responde: { total, abiertos, en_progreso, cerrados }
+  Usa Ticket.getStats() que hace COUNT con FILTER en PostgreSQL.
+
+GET /api/tickets/recientes
+  Propósito: Últimos 5 tickets (para el Dashboard)
+  Usa Ticket.getRecientes() que hace LIMIT 5 ORDER BY created_at DESC.
+
+GET /api/tickets
+  Propósito: Lista todos los tickets
+  Responde: array directo de tickets (no envuelto en objeto).
+
+POST /api/tickets
+  Propósito: Crear nuevo ticket
+  Body: { subject, description, type, impact, product_id }
+  El created_by_user se toma de req.usuario.user_id (el usuario logueado).
+
+GET /api/tickets/:id
+  Propósito: Detalle de un ticket con sus comentarios
+  Responde: { ticket, comentarios }
+
+PUT /api/tickets/:id (solo admin y support)
+  Propósito: Actualizar un ticket completo
+  Usa COALESCE en el SQL para actualización parcial.
+
+PATCH /api/tickets/:id/estado
+  Propósito: Cambiar solo el status
+  Body: { status: 'open' | 'in_progress' | 'closed' }
+
+PATCH /api/tickets/:id/asignar (solo admin y support)
+  Propósito: Asignar ticket a un agente
+  Body: { assigned_user_id: 'uuid' }
+  También cambia status a 'in_progress'.
+
+PATCH /api/tickets/:id/escalar (solo admin y support)
+  Propósito: Escalar ticket de L1 a L2
+  Cambia current_level a 2.
+
+DELETE /api/tickets/:id (solo admin)
+  Propósito: Eliminar ticket (soft delete)
+
+POST /api/tickets/:id/comentarios
+  Propósito: Agregar comentario a un ticket
+  Body: { content }
+  El user_id se toma de req.usuario.user_id.
+
+GET /api/tickets/:id/comentarios
+  Propósito: Obtener comentarios de un ticket
+
+============================================================
+RUTA: routes/customers.js (/api/customers)
+============================================================
+GET    /api/customers       → Lista todas las empresas (todos los autenticados)
+GET    /api/customers/:nit  → Detalle de una empresa
+POST   /api/customers       → Crear empresa (admin, support)
+PUT    /api/customers/:nit  → Actualizar empresa (admin, support)
+DELETE /api/customers/:nit  → Eliminar empresa (solo admin)
+
+El POST maneja el error código 23505 de PostgreSQL (NIT duplicado).
+
+============================================================
+RUTA: routes/products.js (/api/products)
+============================================================
+GET    /api/products      → Lista todos los productos con company_name
+GET    /api/products/:id  → Detalle de un producto
+POST   /api/products      → Crear producto (admin, support)
+PUT    /api/products/:id  → Actualizar producto (admin, support)
+DELETE /api/products/:id  → Eliminar producto (solo admin)
+
+============================================================
+RUTA: routes/users.js (/api/users)
+============================================================
+Todas las rutas requieren rol 'admin'.
+
+GET    /api/users      → Lista todos los usuarios
+GET    /api/users/:id  → Detalle de un usuario
+PUT    /api/users/:id  → Actualizar usuario
+DELETE /api/users/:id  → Eliminar usuario (soft delete)
+
+============================================================
+RUTA: routes/comments.js (/api/comments)
+============================================================
+DELETE /api/comments/:id (solo admin)
+  Los comentarios se crean y leen a través de /api/tickets/:id/comentarios.
+  Este endpoint es solo para que un admin pueda eliminar un comentario directamente.
+
+============================================================
+RUTA: routes/index.js (/api)
+============================================================
+Es el "índice" que agrupa todos los routers.
+Se monta en app.js con: app.use('/api', routes)
+
+Monta:
+  /api/auth      → authRoutes
+  /api/tickets   → ticketRoutes
+  /api/products  → productRoutes
+  /api/customers → customerRoutes
+  /api/users     → userRoutes
+  /api/comments  → commentRoutes
