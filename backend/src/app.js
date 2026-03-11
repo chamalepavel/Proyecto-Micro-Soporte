@@ -1,4 +1,4 @@
-// Servidor principal - Sistema de Micro-Soporte
+// Servidor principal - Sistema de Micro-Soporte Técnico
 const express = require('express');
 const cors    = require('cors');
 const dotenv  = require('dotenv');

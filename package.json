@@ -17,7 +17,8 @@
     "microservicios",
     "nodejs",
     "react",
-    "postgresql"
+    "postgresql",
+    "tickets"
   ],
   "author": "Equipo de Desarrollo",
   "license": "MIT",

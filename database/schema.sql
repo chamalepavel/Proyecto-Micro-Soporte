@@ -1,6 +1,6 @@
 -- SISTEMA DE MICRO-SOPORTE
--- Base de datos PostgreSQL - Nivel Estudiante
--- Tablas simples con SERIAL (auto incremento), sin UUID, sin soft delete
+-- Base de datos PostgreSQL
+-- Tablas con SERIAL (auto incremento), sin UUID, sin soft delete
 
 -- TABLA: customers
 -- Empresas que usan el sistema de soporte

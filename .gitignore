@@ -1,5 +1,6 @@
 # Dependencias de Node.js
 node_modules/
+.npm/
 
 # Variables de entorno (contienen contraseñas)
 .env
